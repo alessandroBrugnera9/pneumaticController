@@ -55,18 +55,18 @@ void setValvesStates()
     switch (valvesStates[i])
     {
     case FILL:
-      digitalWrite(valvePins[valveIndex * 2], HIGH);
-      digitalWrite(valvePins[valveIndex * 2 + 1], LOW);
+      digitalWrite(valvePins[valveIndex], HIGH);
+      digitalWrite(valvePins[valveIndex + 1], LOW);
       break;
 
     case CLOSE:
-      digitalWrite(valvePins[valveIndex * 2], LOW);
-      digitalWrite(valvePins[valveIndex * 2 + 1], LOW);
+      digitalWrite(valvePins[valveIndex], LOW);
+      digitalWrite(valvePins[valveIndex + 1], LOW);
       break;
 
     case UNFILL:
-      digitalWrite(valvePins[valveIndex * 2], LOW);
-      digitalWrite(valvePins[valveIndex * 2 + 1], HIGH);
+      digitalWrite(valvePins[valveIndex], LOW);
+      digitalWrite(valvePins[valveIndex + 1], HIGH);
       break;
 
     default:
