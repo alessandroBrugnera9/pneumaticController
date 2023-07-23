@@ -102,8 +102,14 @@ void setup()
     pinMode(valvePins[i], OUTPUT);
     digitalWrite(valvePins[i], LOW);
   }
+  for (int i = 0; i < 9; i++)
+  {
+    valvesStates[i] = CLOSE;
+  }
+    
 
   // preparing sensors
+  memset(pressures, 0, sizeof(pressures));
   analogReadResolution(12); // changing reading resolution to 12 bits from arduino due
 
   // preparing serial communication
