@@ -85,7 +85,7 @@ ValveState valvesStates[9];
 //   // Precalculate the shift values for each valve index
 //   int shiftValues[9];
 //   for (int i = 0; i < 9; i++) {
-//     shiftValues[i] = 1 << (i + 22 - 22);
+//     shiftValues[i] = 1 << i;
 //   }
 
 //   for (int i = 0; i < 9; i++)
@@ -123,12 +123,6 @@ ValveState valvesStates[9];
 // {
 //   // Define the bitmask for pins 22 to 39
 //   uint32_t pinMask = 0;
-
-//   // Precalculate the shift values for each valve index
-//   int shiftValues[9];
-//   for (int i = 0; i < 9; i++) {
-//     shiftValues[i] = 1 << i;
-//   }
 
 //   for (int i = 0; i < 9; i++)
 //   {
