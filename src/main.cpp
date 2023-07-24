@@ -47,33 +47,121 @@ enum ValveState
 
 ValveState valvesStates[9];
 
-void setValvesStates()
-{
-  for (int i = 0; i < 9; i++)
-  {
-    const int valveIndex = i + 22;
-    switch (valvesStates[i])
-    {
-    case FILL:
-      digitalWrite(valvePins[valveIndex], HIGH);
-      digitalWrite(valvePins[valveIndex + 1], LOW);
-      break;
+// void setValvesStates()
+// {
+//   for (int i = 0; i < 9; i++)
+//   {
+//     const int valveIndex = i + 22;
+//     switch (valvesStates[i])
+//     {
+//     case FILL:
+//       digitalWrite(valvePins[valveIndex], HIGH);
+//       digitalWrite(valvePins[valveIndex + 1], LOW);
+//       break;
 
-    case CLOSE:
-      digitalWrite(valvePins[valveIndex], LOW);
-      digitalWrite(valvePins[valveIndex + 1], LOW);
-      break;
+//     case CLOSE:
+//       digitalWrite(valvePins[valveIndex], LOW);
+//       digitalWrite(valvePins[valveIndex + 1], LOW);
+//       break;
 
-    case UNFILL:
-      digitalWrite(valvePins[valveIndex], LOW);
-      digitalWrite(valvePins[valveIndex + 1], HIGH);
-      break;
+//     case UNFILL:
+//       digitalWrite(valvePins[valveIndex], LOW);
+//       digitalWrite(valvePins[valveIndex + 1], HIGH);
+//       break;
 
-    default:
-      break;
-    }
-  }
-}
+//     default:
+//       break;
+//     }
+//   }
+// }
+
+// PRobably faster version of setValvesStates, needs testing
+// TODO: test this
+// void setValvesStates()
+// {
+//   // Define the bitmask for pins 22 to 39
+//   uint32_t pinMask = 0;
+
+//   // Precalculate the shift values for each valve index
+//   int shiftValues[9];
+//   for (int i = 0; i < 9; i++) {
+//     shiftValues[i] = 1 << (i + 22 - 22);
+//   }
+
+//   for (int i = 0; i < 9; i++)
+//   {
+//     switch (valvesStates[i])
+//     {
+//     case FILL:
+//       // Set the corresponding bits in the bitmask for FILL state
+//       pinMask |= shiftValues[i];
+//       break;
+
+//     case CLOSE:
+//       // Clear the corresponding bits in the bitmask for CLOSE state
+//       pinMask &= ~shiftValues[i];
+//       break;
+
+//     case UNFILL:
+//       // Set the corresponding bits in the bitmask for UNFILL state
+//       pinMask |= shiftValues[i];
+//       break;
+
+//     default:
+//       break;
+//     }
+//   }
+
+//   // Set pins 22 to 39 HIGH all at once for FILL and UNFILL states
+//   PIOB->PIO_SODR = pinMask;
+
+//   // Set pins 22 to 39 LOW all at once for CLOSE state
+//   PIOB->PIO_CODR = pinMask;
+// }
+
+// void setValvesStates()
+// {
+//   // Define the bitmask for pins 22 to 39
+//   uint32_t pinMask = 0;
+
+//   // Precalculate the shift values for each valve index
+//   int shiftValues[9];
+//   for (int i = 0; i < 9; i++) {
+//     shiftValues[i] = 1 << i;
+//   }
+
+//   for (int i = 0; i < 9; i++)
+//   {
+//     switch (valvesStates[i])
+//     {
+//     case FILL:
+//       // Set the corresponding bits in the bitmask for FILL state
+//       pinMask |= (1 << (i + 22));
+//       break;
+
+//     case CLOSE:
+//       // Clear the corresponding bits in the bitmask for CLOSE state
+//       pinMask &= ~(1 << (i + 22));
+//       break;
+
+//     case UNFILL:
+//       // Set the corresponding bits in the bitmask for UNFILL state
+//       pinMask |= (1 << (i + 22));
+//       break;
+
+//     default:
+//       break;
+//     }
+//   }
+
+//   // Set pins 22 to 39 HIGH all at once for FILL and UNFILL states
+//   PIOB->PIO_SODR = pinMask;
+
+//   // Set pins 22 to 39 LOW all at once for CLOSE state
+//   PIOB->PIO_CODR = pinMask;
+// }
+
+
 
 // XPC COMMUNICATION
 void readXPC()
