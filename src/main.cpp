@@ -1,225 +1,215 @@
 #include <Arduino.h>
 
-// SENSORS
-// enum sensors
-// {
-//   ankle1 = A0,
-//   ankle2,
-//   knee1,
-//   knee2,
-//   hip1,
-//   hip2,
-//   biArticular1,
-//   biArticular2,
-//   biArticular3,
-// };
+#include "EasyCAT.h" // EasyCAT library to interface the LAN9252
 
-const float voltageMultiplier = 560.0 / (560.0 + 390.0);
-const float voltageRange = voltageMultiplier * 4.0;
 
-float pressures[9];
+int nloopsCounter = 0;
+unsigned long timeStart = 0;
+const int nloops = 10000;
 
-void getPressures()
+// Ethercat
+EasyCAT EASYCAT(9); // EasyCAT SPI chip select. Standard is pin 9
+
+
+// DECLARING PINS
+// Valve Pins
+// B Comes first of A because matlab convention in inverted with A and B
+int valve1B = 33;
+int valve2B = 41;
+int valve3B = 40;
+int valve4B = 39;
+int valve5B = 27;
+int valve6B = 26;
+int valve7B = 13;
+int valve8B = 12;
+int valve9B = 10;
+int valve1A = 24;
+int valve2A = 25;
+int valve3A = 23;
+int valve4A = 22;
+int valve5A = 28;
+int valve6A = 29;
+int valve7A = 30;
+int valve8A = 31;
+int valve9A = 32;
+
+// Pressure Sensors Pins
+// Non used pins are commented
+  // TODO: remove these after assinng new pins
+// int sensor1Pin = A3;
+int sensor2Pin = A1;
+int sensor3Pin = A9;
+int sensor4Pin = A10;
+int sensor5Pin = A3;
+int sensor6Pin = A8;
+// int sensor7 = A4;
+int sensor8Pin = A0;
+int sensor9Pin = A2;
+
+void getPressureSensorsVoltage()
 {
-  for (int i = 0; i < 9; i++)
-  {
-    const int sensorPin = i + A0;
-    int sensorValue = analogRead(sensorPin);      // Read the analog value from the pressure sensor
-    float voltage = sensorValue * (3.3 / 4095.0); // Convert the analog value to voltage (assuming a 3.3V reference voltage, and 12 bits resolution)
-    Serial.println(voltage, 4);                   // Print pressure value with 4 decimal places, (3.3/4096/2.4) has this precision
+  // Reading
+  // uint16_t sensor1 = analogRead(sensor1Pin);
+  uint16_t sensor2 = analogRead(sensor2Pin);
+  uint16_t sensor3 = analogRead(sensor3Pin);
+  uint16_t sensor4 = analogRead(sensor4Pin);
+  uint16_t sensor5 = analogRead(sensor5Pin);
+  uint16_t sensor6 = analogRead(sensor6Pin);
+  // uint16_t sensor7 = analogRead(sensor7Pin);
+  uint16_t sensor8 = analogRead(sensor8Pin);
+  uint16_t sensor9 = analogRead(sensor9Pin);
 
-    // Tension divider with R2=560k and R1=390K
-    // Map the voltage range (voltageMultiplier to voltageMultiplier*5) to the pressure range (0 MPa to 1 MPa)
-    pressures[i] = (voltage - voltageMultiplier) / voltageRange;
-  }
+  // Unused Pins
+  // TODO: remove these after assinng new pins
+  uint16_t sensor1 = 0;
+  uint16_t sensor7 = 0;
+
+
+  // Sending
+  // sensor1
+  // Send first the most significant byte and then the least significant byte
+  EASYCAT.BufferIn.Byte[0] = (sensor1 >> 8) & 0xFF;
+  EASYCAT.BufferIn.Byte[1] = (sensor1 & 0xFF);
+
+  // sensor2
+  EASYCAT.BufferIn.Byte[2] = (sensor2 >> 8) & 0xFF;
+  EASYCAT.BufferIn.Byte[3] = (sensor2 & 0xFF);
+
+  // sensor3
+  EASYCAT.BufferIn.Byte[4] = (sensor3 >> 8) & 0xFF;
+  EASYCAT.BufferIn.Byte[5] = (sensor3 & 0xFF);
+
+  // sensor4
+  EASYCAT.BufferIn.Byte[6] = (sensor4 >> 8) & 0xFF;
+  EASYCAT.BufferIn.Byte[7] = (sensor4 & 0xFF);
+
+  // sensor5
+  EASYCAT.BufferIn.Byte[8] = (sensor5 >> 8) & 0xFF;
+  EASYCAT.BufferIn.Byte[9] = (sensor5 & 0xFF);
+
+  // sensor6
+  EASYCAT.BufferIn.Byte[10] = (sensor6 >> 8) & 0xFF;
+  EASYCAT.BufferIn.Byte[11] = (sensor6 & 0xFF);
+
+  // sensor7
+  EASYCAT.BufferIn.Byte[12] = (sensor7 >> 8) & 0xFF;
+  EASYCAT.BufferIn.Byte[13] = (sensor7 & 0xFF);
+
+  // sensor8
+  EASYCAT.BufferIn.Byte[14] = (sensor8 >> 8) & 0xFF;
+  EASYCAT.BufferIn.Byte[15] = (sensor8 & 0xFF);
+
+  // sensor9
+  EASYCAT.BufferIn.Byte[16] = (sensor9 >> 8) & 0xFF;
+  EASYCAT.BufferIn.Byte[17] = (sensor9 & 0xFF);
 }
 
-// VALVES
-// start enum from 22 to avoid conflict with analog pins
-const int valvePins[] = {22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39};
-
-enum ValveState
+void controlValves()
 {
-  CLOSE,
-  FILL,
-  UNFILL,
-};
-
-ValveState valvesStates[9];
-
-// void setValvesStates()
-// {
-//   for (int i = 0; i < 9; i++)
-//   {
-//     const int valveIndex = i + 22;
-//     switch (valvesStates[i])
-//     {
-//     case FILL:
-//       digitalWrite(valvePins[valveIndex], HIGH);
-//       digitalWrite(valvePins[valveIndex + 1], LOW);
-//       break;
-
-//     case CLOSE:
-//       digitalWrite(valvePins[valveIndex], LOW);
-//       digitalWrite(valvePins[valveIndex + 1], LOW);
-//       break;
-
-//     case UNFILL:
-//       digitalWrite(valvePins[valveIndex], LOW);
-//       digitalWrite(valvePins[valveIndex + 1], HIGH);
-//       break;
-
-//     default:
-//       break;
-//     }
-//   }
-// }
-
-// PRobably faster version of setValvesStates, needs testing
-// TODO: test this
-// void setValvesStates()
-// {
-//   // Define the bitmask for pins 22 to 39
-//   uint32_t pinMask = 0;
-
-//   // Precalculate the shift values for each valve index
-//   int shiftValues[9];
-//   for (int i = 0; i < 9; i++) {
-//     shiftValues[i] = 1 << i;
-//   }
-
-//   for (int i = 0; i < 9; i++)
-//   {
-//     switch (valvesStates[i])
-//     {
-//     case FILL:
-//       // Set the corresponding bits in the bitmask for FILL state
-//       pinMask |= shiftValues[i];
-//       break;
-
-//     case CLOSE:
-//       // Clear the corresponding bits in the bitmask for CLOSE state
-//       pinMask &= ~shiftValues[i];
-//       break;
-
-//     case UNFILL:
-//       // Set the corresponding bits in the bitmask for UNFILL state
-//       pinMask |= shiftValues[i];
-//       break;
-
-//     default:
-//       break;
-//     }
-//   }
-
-//   // Set pins 22 to 39 HIGH all at once for FILL and UNFILL states
-//   PIOB->PIO_SODR = pinMask;
-
-//   // Set pins 22 to 39 LOW all at once for CLOSE state
-//   PIOB->PIO_CODR = pinMask;
-// }
-
-// void setValvesStates()
-// {
-//   // Define the bitmask for pins 22 to 39
-//   uint32_t pinMask = 0;
-
-//   for (int i = 0; i < 9; i++)
-//   {
-//     switch (valvesStates[i])
-//     {
-//     case FILL:
-//       // Set the corresponding bits in the bitmask for FILL state
-//       pinMask |= (1 << (i + 22));
-//       break;
-
-//     case CLOSE:
-//       // Clear the corresponding bits in the bitmask for CLOSE state
-//       pinMask &= ~(1 << (i + 22));
-//       break;
-
-//     case UNFILL:
-//       // Set the corresponding bits in the bitmask for UNFILL state
-//       pinMask |= (1 << (i + 22));
-//       break;
-
-//     default:
-//       break;
-//     }
-//   }
-
-//   // Set pins 22 to 39 HIGH all at once for FILL and UNFILL states
-//   PIOB->PIO_SODR = pinMask;
-
-//   // Set pins 22 to 39 LOW all at once for CLOSE state
-//   PIOB->PIO_CODR = pinMask;
-// }
-
-
-
-// XPC COMMUNICATION
-void readXPC()
-{
-  // TODO: decide if this is ISR or not
-  // TODO: read valves command
+  // Turning on/off Solenoids
+  // digitalWrite(valve1A, EASYCAT.BufferOut.Byte[0]);
+  // digitalWrite(valve1B, EASYCAT.BufferOut.Byte[1]);
+  digitalWrite(valve2A, EASYCAT.BufferOut.Byte[2]);
+  digitalWrite(valve2B, EASYCAT.BufferOut.Byte[3]);
+  digitalWrite(valve3A, EASYCAT.BufferOut.Byte[4]);
+  digitalWrite(valve3B, EASYCAT.BufferOut.Byte[5]);
+  digitalWrite(valve4A, EASYCAT.BufferOut.Byte[6]);
+  digitalWrite(valve4B, EASYCAT.BufferOut.Byte[7]);
+  digitalWrite(valve5A, EASYCAT.BufferOut.Byte[8]);
+  digitalWrite(valve5B, EASYCAT.BufferOut.Byte[9]);
+  digitalWrite(valve6A, EASYCAT.BufferOut.Byte[10]);
+  digitalWrite(valve6B, EASYCAT.BufferOut.Byte[11]);
+  // digitalWrite(valve7A, EASYCAT.BufferOut.Byte[12]);
+  // digitalWrite(valve7B, EASYCAT.BufferOut.Byte[13]);
+  digitalWrite(valve8A, EASYCAT.BufferOut.Byte[14]);
+  digitalWrite(valve8B, EASYCAT.BufferOut.Byte[15]);
+  digitalWrite(valve9A, EASYCAT.BufferOut.Byte[16]);
+  digitalWrite(valve9B, EASYCAT.BufferOut.Byte[17]);
 }
-
-void sendXPC()
-{
-
-  // TODO: handler variables to send to XPC
-  // TODO: send to XPC
-}
-
-// LOOP MEASUREMENT
-unsigned int counter = 0;
-const int nLoops = 100;
-unsigned long microsStart;
 
 void setup()
 {
-  // preparing valves
-  for (int i = 0; i < 18; i++)
-  {
-    pinMode(valvePins[i], OUTPUT);
-    digitalWrite(valvePins[i], LOW);
-  }
-  for (int i = 0; i < 9; i++)
-  {
-    valvesStates[i] = CLOSE;
-  }
-    
+  Serial.begin(115200);
+  // initial time for loop counter
+  timeStart = millis();
+  nloopsCounter = 0;
 
-  // preparing sensors
-  memset(pressures, 0, sizeof(pressures));
-  analogReadResolution(12); // changing reading resolution to 12 bits from arduino due
+  // Pin Configurations
+  //---------------------------------------------------------------------------------------------------------------------------//
+  pinMode(valve1A, OUTPUT);
+  pinMode(valve1B, OUTPUT);
+  pinMode(valve2A, OUTPUT);
+  pinMode(valve2B, OUTPUT);
+  pinMode(valve3A, OUTPUT);
+  pinMode(valve3B, OUTPUT);
+  pinMode(valve4A, OUTPUT);
+  pinMode(valve4B, OUTPUT);
+  pinMode(valve5A, OUTPUT);
+  pinMode(valve5B, OUTPUT);
+  pinMode(valve6A, OUTPUT);
+  pinMode(valve6B, OUTPUT);
+  pinMode(valve7A, OUTPUT);
+  pinMode(valve7B, OUTPUT);
+  pinMode(valve8A, OUTPUT);
+  pinMode(valve8B, OUTPUT);
+  pinMode(valve9A, OUTPUT);
+  pinMode(valve9B, OUTPUT);
 
-  // preparing serial communication
-  counter = 0;
-  Serial.begin(115200); // Initialize serial communication
-  Serial.println("Setup Finished.");
+  // Ethercat initlization if failed stay in loop blinking
+  if (EASYCAT.Init() == true)
+  {
+  }
+
+  else // initialization failed
+  {
+    while (1)
+    {
+      digitalWrite(13, LOW);
+      delay(500);
+      digitalWrite(13, HIGH);
+      delay(500);
+    }
+  }
+
+  Serial.println("Setup finished");
 }
 
 void loop()
 {
-  // measure the time for 100 loops
-  if (counter == 0)
+  EASYCAT.MainTask(); // execute the EasyCAT task
+
+  // every 10000 loops calculate the time necessary with counter
+  if (nloopsCounter == nloops)
   {
-    microsStart = micros();
+    Serial.print("Time for ");
+    Serial.print(nloops);
+    Serial.print(" loops: ");
+    Serial.println(millis() - timeStart);
+    timeStart = millis();
+    nloopsCounter = 0;
   }
-  else if (counter == nLoops)
+  nloopsCounter++;
+
+  if (Serial.available())
   {
-    Serial.print("Time for 100 loops: ");
-    Serial.println(micros() - microsStart);
-    counter = 0;
+    while (Serial.available())
+    {
+      Serial.read();
+    }
+    
+    // also prints the pressure
+    // 1v is 0 bar
+    // 5v is 10 bar
+
+    Serial.println("Sensor ");
+    float voltage = (analogRead(A3) * 5.0) / 1023.0;
+    Serial.print("Voltage: ");
+    Serial.println(voltage);
+
+    Serial.print("Pressure: ");
+    Serial.println((voltage - 1.0) * (10.0 / 4.0));
   }
 
-  readXPC();
-
-  // handle valves and sensors
-  getPressures();
-  setValvesStates();
-
-  sendXPC();
-  counter++;
+  getPressureSensorsVoltage();
+  controlValves();
 }
