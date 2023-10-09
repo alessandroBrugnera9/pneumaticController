@@ -2,14 +2,12 @@
 
 #include "EasyCAT.h" // EasyCAT library to interface the LAN9252
 
-
 int nloopsCounter = 0;
 unsigned long timeStart = 0;
 const int nloops = 10000;
 
 // Ethercat
 EasyCAT EASYCAT(9); // EasyCAT SPI chip select. Standard is pin 9
-
 
 // DECLARING PINS
 // Valve Pins
@@ -21,8 +19,8 @@ int valve4B = 39;
 int valve5B = 27;
 int valve6B = 26;
 int valve7B = 13;
-int valve8B = 12;
-int valve9B = 10;
+int valve8B = 33; // Originally 12
+int valve9B = 24; // Originally 10
 int valve1A = 24;
 int valve2A = 25;
 int valve3A = 23;
@@ -35,7 +33,7 @@ int valve9A = 32;
 
 // Pressure Sensors Pins
 // Non used pins are commented
-  // TODO: remove these after assinng new pins
+// TODO: remove these after assinng new pins
 // int sensor1Pin = A3;
 int sensor2Pin = A1;
 int sensor3Pin = A9;
@@ -63,7 +61,6 @@ void getPressureSensorsVoltage()
   // TODO: remove these after assinng new pins
   uint16_t sensor1 = 0;
   uint16_t sensor7 = 0;
-
 
   // Sending
   // sensor1
@@ -125,6 +122,29 @@ void controlValves()
   digitalWrite(valve8B, EASYCAT.BufferOut.Byte[15]);
   digitalWrite(valve9A, EASYCAT.BufferOut.Byte[16]);
   digitalWrite(valve9B, EASYCAT.BufferOut.Byte[17]);
+}
+
+void emptyPAMS()
+{
+  // Turning on/off Solenoids
+  // digitalWrite(valve1A, HIGH);
+  // digitalWrite(valve1B, LOW);
+  digitalWrite(valve2A, HIGH);
+  digitalWrite(valve2B, LOW);
+  digitalWrite(valve3A, HIGH);
+  digitalWrite(valve3B, LOW);
+  digitalWrite(valve4A, HIGH);
+  digitalWrite(valve4B, LOW);
+  digitalWrite(valve5A, HIGH);
+  digitalWrite(valve5B, LOW);
+  digitalWrite(valve6A, HIGH);
+  digitalWrite(valve6B, LOW);
+  // digitalWrite(valve7A, HIGH);
+  // digitalWrite(valve7B, LOW);
+  digitalWrite(valve8A, HIGH);
+  digitalWrite(valve8B, LOW);
+  digitalWrite(valve9A, HIGH);
+  digitalWrite(valve9B, LOW);
 }
 
 void setup()
@@ -192,11 +212,26 @@ void loop()
 
   if (Serial.available())
   {
+    // check if received String off
+    String command = Serial.readString();
+    if (command == "off")
+    {
+      Serial.println("empyting PAMS");
+      emptyPAMS();
+      delay(4000);
+      Serial.println("PAMS emptied");
+    } else if(command=="t"){
+      digitalWrite(valve6B, HIGH);
+      delay(500);
+      digitalWrite(valve6A, LOW);
+      delay(500);
+    }
+
     while (Serial.available())
     {
       Serial.read();
     }
-    
+
     // also prints the pressure
     // 1v is 0 bar
     // 5v is 10 bar
